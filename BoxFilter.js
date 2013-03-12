@@ -71,8 +71,12 @@ function AlphaizeImage (imageName) {
     if (!img)
         throw "Error loading image";
 
+    // Convert the image to make life easy and breezy
     var image = img.convertTo32Bits();
+
+    // The size of a buffer to hold the image once manipulated
     var szBuffBytes = image.height*image.pitch;
+
     var outputBytes = new Uint8Array(szBuffBytes);
     var outputImageBuffer;
     var inputImage;
