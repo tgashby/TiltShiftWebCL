@@ -1,6 +1,9 @@
 unsigned int PixelToBufferData(uint4 pixel);
 uint4 BufferDataToPixel(unsigned int pixelValue);
-unsigned int lerp(unsigned int initialYPos, unsigned int finalYPos, float dist);
+float CalculateBlurPercent(unsigned int row, unsigned int boundary, unsigned int whichBound);
+
+unsigned int UPPER_BOUND = 0;
+unsigned int LOWER_BOUND = 1;
 
 // Used to pack the pixel into the output array
 unsigned int PixelToBufferData(uint4 pixel)
@@ -27,9 +30,18 @@ uint4 BufferDataToPixel(unsigned int pixelValue)
     return pixel;
 }
 
-unsigned int lerp(unsigned int initialYPos, unsigned int finalYPos, float dist)
+float CalculateBlurPercent(unsigned int row, unsigned int boundary, unsigned int whichBound)
 {
-    return (unsigned int)(initialYPos + (finalYPos - initialYPos) * dist);
+    float blurPercent;
+
+    if (whichBound == UPPER_BOUND)
+    {
+        blurPercent = 1.0f - row / boundary;
+    }
+    else if (whichBound == LOWER_BOUND)
+    {
+        blurPercent = row / boundary - 1.0f;
+    }
 }
 
 /*
@@ -53,7 +65,35 @@ unsigned int lerp(unsigned int initialYPos, unsigned int finalYPos, float dist)
 __kernel void TiltShift(__read_only image2d_t originalImg, __global unsigned int* blurredImg,
     __global unsigned int* outputImage, unsigned int upperBoundary, unsigned int lowerBoundary)
 {
+    int imgWidth = get_image_width(originalImg);
+    int imgHeight = get_image_height(originalImg);
 
+    int row = get_global_id(0);
+    int rowOffset = mul24(row, imgWidth);
+
+    float blurPercent = 0.0f;
+    float clearPercent = 1.0f;
+
+    if (row < upperBoundary)
+    {
+        blurPercent = CalculateBlurPercent(row, upperBoundary, UPPER_BOUND);
+    }
+    else if (row > lowerBoundary)
+    {
+        blurPercent = CalculateBlurPercent(row, lowerBoundary, LOWER_BOUND);
+    }
+
+    clearPercent -= blurPercent;
+
+    if (row < imgHeight)
+    {
+        for (int col = 0; col < imgWidth; col++)
+        {
+            int2 pixelPos = {row, col};
+            uint4 clearPixel = read_imageui(sourceImg, sampler, pixelPos);
+            uint4 blurPixel = BufferDataToPixel(blurredImg[rowOffset + col]);
+        }
+    }
 }
 
 

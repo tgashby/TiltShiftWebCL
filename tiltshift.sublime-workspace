@@ -4,6 +4,14 @@
 		"selected_items":
 		[
 			[
+				"blur",
+				"blurredImg"
+			],
+			[
+				"get_im",
+				"get_image_height"
+			],
+			[
 				"rb",
 				"rgbaVals"
 			],
@@ -506,60 +514,32 @@
 			[
 				"cur",
 				"currTime"
-			],
-			[
-				"comp",
-				"components"
-			],
-			[
-				"ent",
-				"entities"
 			]
 		]
 	},
 	"buffers":
 	[
-		{
-			"file": "/Users/tgashby/Google Drive/Cal Poly Classes/Fourth Year/CSC520/NodeWebCL/tagsplayground/Alphaize.js",
-			"settings":
-			{
-				"buffer_size": 5588,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "tilt_shift.cl",
-			"settings":
-			{
-				"buffer_size": 2293,
-				"line_ending": "Windows"
-			}
-		},
-		{
-			"file": "TiltShift.js",
-			"settings":
-			{
-				"buffer_size": 5578,
-				"line_ending": "Windows"
-			}
-		}
 	],
 	"build_system": "",
 	"command_palette":
 	{
-		"height": 47.0,
+		"height": 147.0,
 		"selected_items":
 		[
+			[
+				"open",
+				"Set Syntax: OpenCL"
+			],
+			[
+				"ssopen",
+				"Set Syntax: OpenCL"
+			],
 			[
 				"opencl",
 				"Set Syntax: OpenCL"
 			],
 			[
 				"ssopenc",
-				"Set Syntax: OpenCL"
-			],
-			[
-				"ssopen",
 				"Set Syntax: OpenCL"
 			],
 			[
@@ -760,6 +740,13 @@
 	},
 	"file_history":
 	[
+		"/Users/tgashby/Google Drive/Cal Poly Classes/Fourth Year/CSC520/NodeWebCL/TiltShift/TiltShift.js",
+		"/Users/tgashby/Google Drive/Cal Poly Classes/Fourth Year/CSC520/NodeWebCL/examples/BoxFilter.js",
+		"/Users/tgashby/Google Drive/Cal Poly Classes/Fourth Year/CSC520/NodeWebCL/TiltShift/tilt_shift.cl",
+		"/Users/tgashby/Google Drive/Cal Poly Classes/Fourth Year/CSC520/NodeWebCL/examples/BoxFilter.cl",
+		"/Users/tgashby/Google Drive/Cal Poly Classes/Fourth Year/CSC520/NodeWebCL/tagsplayground/Alphaize.js",
+		"/Users/tgashby/Google Drive/Cal Poly Classes/Fourth Year/CSC520/NodeWebCL/TiltShift/tiltshift.sublime-project",
+		"/Users/tgashby/Google Drive/Cal Poly Classes/Fourth Year/CSC300/Term Paper/termpaper.sublime-project",
 		"/Users/tgashby/node_modules/node-webcl/examples/tagsplayground/see_through.cl",
 		"/Users/tgashby/node_modules/node-webcl/examples/tagsplayground/Alphaize.js",
 		"/Users/tgashby/Google Drive/Cal Poly Classes/Fourth Year/CSC300/Term Paper/paper.tex",
@@ -880,14 +867,7 @@
 		"/C/Users/Tag/AppData/Local/Temp/35613900-1ac0-485a-a111-5bf7785a9e0c/home/tgashby/Documents/305/Milestone1/tests/Pylos/Pylos.2",
 		"/C/Users/Tag/AppData/Local/Temp/35613900-1ac0-485a-a111-5bf7785a9e0c/home/tgashby/Documents/305/Milestone1/tests/Pylos/Pylos.4",
 		"/C/Users/Tag/AppData/Local/Temp/35613900-1ac0-485a-a111-5bf7785a9e0c/home/tgashby/Documents/305/Milestone1/tests/Pylos/Pylos.3",
-		"/C/Users/Tag/Google Drive/Cal Poly Classes/Fourth Year/CSC305/Milestone 0/turnin.sh",
-		"/C/Users/Tag/AppData/Local/Temp/35613900-1ac0-485a-a111-5bf7785a9e0c/home/tgashby/Documents/305/Milestone1/tests/Pylos/Pylos3Staley.out",
-		"/C/Users/Tag/AppData/Local/Temp/35613900-1ac0-485a-a111-5bf7785a9e0c/home/tgashby/Documents/305/Milestone1/tests/Pylos/Pylos3Me.out",
-		"/C/Users/Tag/AppData/Local/Temp/35613900-1ac0-485a-a111-5bf7785a9e0c/home/tgashby/Documents/305/Milestone1/tests/Pylos/Pylos4Staley.out",
-		"/C/Users/Tag/AppData/Local/Temp/35613900-1ac0-485a-a111-5bf7785a9e0c/home/tgashby/Documents/305/Milestone1/tests/Pylos/Pylos0Staley.out",
-		"/C/Users/Tag/AppData/Local/Temp/35613900-1ac0-485a-a111-5bf7785a9e0c/home/tgashby/Documents/305/Milestone1/tests/Pylos/Pylos0Me.out",
-		"/C/Users/Tag/AppData/Local/Temp/35613900-1ac0-485a-a111-5bf7785a9e0c/home/tgashby/Documents/305/Milestone1/herpderp.txt",
-		"/C/Users/Tag/Google Drive/Cal Poly Classes/Fourth Year/CSC305/Milestone 0/tests/Pylos/Pylos.0"
+		"/C/Users/Tag/Google Drive/Cal Poly Classes/Fourth Year/CSC305/Milestone 0/turnin.sh"
 	],
 	"find":
 	{
@@ -1129,93 +1109,8 @@
 	"groups":
 	[
 		{
-			"selected": 1,
 			"sheets":
 			[
-				{
-					"buffer": 0,
-					"file": "/Users/tgashby/Google Drive/Cal Poly Classes/Fourth Year/CSC520/NodeWebCL/tagsplayground/Alphaize.js",
-					"settings":
-					{
-						"buffer_size": 5588,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								5519,
-								5522
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JavaScript.tmLanguage",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 741.0,
-						"zoom_level": 1.0
-					},
-					"type": "text"
-				},
-				{
-					"buffer": 1,
-					"file": "tilt_shift.cl",
-					"settings":
-					{
-						"buffer_size": 2293,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								0,
-								0
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Lisp/Lisp.tmLanguage",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"type": "text"
-				},
-				{
-					"buffer": 2,
-					"file": "TiltShift.js",
-					"settings":
-					{
-						"buffer_size": 5578,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								0,
-								0
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JavaScript.tmLanguage",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"type": "text"
-				}
 			]
 		}
 	],
