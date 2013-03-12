@@ -14,7 +14,7 @@ var clQueue;
 // nodejs, node-image, node-webcl required
 var nodejs = (typeof window === 'undefined');
 if (nodejs) {
-    WebCL = require('/Users/tgashby/node_modules/node-webcl/webcl');
+    WebCL = require('node-webcl');
     Image = require('node-image').Image;
 };
 
@@ -62,7 +62,7 @@ function InitWebCL () {
     clQueue = clContext.createCommandQueue(device, 0);
 }
 
-function AlphaizeImage (imageName) {
+function TiltShift (imageName, upperBoundary, lowerBoundary) {
     // load image
     var file = imageName;
     console.log('Loading image ' + file);
@@ -154,4 +154,4 @@ function AlphaizeImage (imageName) {
 }
 
 
-AlphaizeImage("old_test.png");
+TiltShift("old_test.png", 100, 100);
