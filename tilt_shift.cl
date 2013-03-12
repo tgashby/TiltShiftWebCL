@@ -1,6 +1,7 @@
 unsigned int PixelToBufferData(uint4 pixel);
 uint4 BufferDataToPixel(unsigned int pixelValue);
 float CalculateBlurPercent(unsigned int row, unsigned int boundary, unsigned int whichBound);
+uint4 ComposePixels(uint4 clearPixel, uint4 blurPixel, float clearPercent, float blurPercent);
 
 unsigned int UPPER_BOUND = 0;
 unsigned int LOWER_BOUND = 1;
@@ -42,6 +43,13 @@ float CalculateBlurPercent(unsigned int row, unsigned int boundary, unsigned int
     {
         blurPercent = row / boundary - 1.0f;
     }
+}
+
+uint4 ComposePixels(uint4 clearPixel, uint4 blurPixel, float clearPercent, float blurPercent)
+{
+    uint4 newPixel = {clearPixel.x * clearPercent + blurPixel.x * blurPercent, clearPixel.y * clearPercent + blurPixel.y * blurPercent,
+        clearPixel.z * clearPercent + blurPixel.z * blurPercent, clearPixel.w * clearPercent + blurPixel.w * blurPercent};
+    return newPixel;
 }
 
 /*
@@ -92,6 +100,10 @@ __kernel void TiltShift(__read_only image2d_t originalImg, __global unsigned int
             int2 pixelPos = {row, col};
             uint4 clearPixel = read_imageui(sourceImg, sampler, pixelPos);
             uint4 blurPixel = BufferDataToPixel(blurredImg[rowOffset + col]);
+
+            uint4 newPixel = ComposePixels(clearPixel, blurPixel, clearPercent, blurPercent);
+
+            outputImage[rowOffset + col] = PixelToBufferData(newPixel);
         }
     }
 }
