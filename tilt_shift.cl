@@ -31,14 +31,32 @@ uint4 BufferDataToPixel(unsigned int pixelValue)
 
 float CalculateLowerBlurPercent(unsigned int row, unsigned int boundary)
 {
-    float blurPercent = 1.0f - ((float)row) / boundary;
+    float blurPercent;
+
+    if (((float)row) / boundary < 0.5f)
+    {
+      blurPercent = 1.0f;
+    }
+    else
+    {
+      blurPercent = 1.0f - ((float)row - 0.5f * boundary) / boundary;
+    }
 
     return blurPercent;
 }
 
 float CalculateUpperBlurPercent(unsigned int row, unsigned int boundary, unsigned int imageHeight)
 {
-    float blurPercent = 1.0f - (((float)imageHeight) - row)/(imageHeight - boundary);
+    float blurPercent;
+
+    if ((((float)imageHeight) - row)/(imageHeight - boundary) < 0.5f)
+    {
+      blurPercent = 1.0f;
+    }
+    else
+    {
+      blurPercent = 1.0f - (((float)imageHeight) - row - (0.5f * (imageHeight - boundary)))/(imageHeight - boundary);
+    }
 
     return blurPercent;
 }
