@@ -11,6 +11,11 @@ var device;
 var clContext;
 var clQueue;
 
+
+// Box processing params
+var iRadius = 14;                  // initial radius of 2D box filter mask
+var fScale = 1/(2 * iRadius + 1);  // precalculated GV rescaling value
+
 var ckBoxRowsTex;             // OpenCL Kernel for row sum (using 2d Image/texture)
 var ckBoxColumns;             // OpenCL for column sum and normalize
 var clInputImage;               // OpenCL device memory object (buffer or 2d Image) for input data
@@ -23,6 +28,7 @@ var szMaxWorkgroupSize = 512; // initial max # of work items
 
 var clBlurImageBuffer;
 var szBuffBytes;
+var image;
 
 // nodejs, node-image, node-webcl required
 var nodejs = (typeof window === 'undefined');
@@ -92,12 +98,9 @@ function InitTiltShiftSystem (imageFile)
         throw "Error loading image";
 
     // Convert the image to make life easy and breezy
-    var image = img.convertTo32Bits();
+    image = img.convertTo32Bits();
 
     // Create blurred image
-    // Box processing params
-    var iRadius = 14;                           // initial radius of 2D box filter mask
-    var fScale = 1/(2 * iRadius + 1);  // precalculated GV rescaling value
 
     szBuffBytes = image.height*image.pitch;
 
@@ -137,6 +140,8 @@ function InitTiltShiftSystem (imageFile)
     // Copy results back to host memory, block until complete
     clBlurImageBuffer=new Uint8Array(szBuffBytes);
     clQueue.enqueueReadBuffer(cmDevBufOut, WebCL.TRUE, 0, szBuffBytes, clBlurImageBuffer);
+
+    clQueue.finish();
 
     // PNG uses 32-bit images, JPG can only work on 24-bit images
     if(!Image.save('out_'+iRadius+'.png',clBlurImageBuffer, image.width,image.height, image.pitch, image.bpp, 0xFF0000, 0x00FF00, 0xFF))
@@ -225,7 +230,7 @@ function TiltShift (upperBoundary, lowerBoundary) {
     // Set up our Kernel arguments
     // Kernel arguments are numbered in array-fashion
     tiltShiftKernel.setArg(0, clInputImage);
-    tiltShiftKernel.setArg(1, clBlurImageBuffer);
+    tiltShiftKernel.setArg(1, cmDevBufOut);
     tiltShiftKernel.setArg(2, outputImageBuffer);
     tiltShiftKernel.setArg(3, upperBoundary, WebCL.type.UINT);
     tiltShiftKernel.setArg(4, lowerBoundary, WebCL.type.UINT);
@@ -249,7 +254,7 @@ function TiltShift (upperBoundary, lowerBoundary) {
 }
 
 InitWebCL();
-InitTiltShiftSystem("old_test.png");
+InitTiltShiftSystem("Central_Cape_Town.png");
 
 // Get slider values to pass in!
-TiltShift(200, 500);
+TiltShift(300, 100);

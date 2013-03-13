@@ -1,10 +1,8 @@
 unsigned int PixelToBufferData(uint4 pixel);
 uint4 BufferDataToPixel(unsigned int pixelValue);
-float CalculateBlurPercent(unsigned int row, unsigned int boundary, unsigned int whichBound);
+float CalculateUpperBlurPercent(unsigned int row, unsigned int boundary);
+float CalculateLowerBlurPercent(unsigned int row, unsigned int boundary, unsigned int imageHeight);
 uint4 ComposePixels(uint4 clearPixel, uint4 blurPixel, float clearPercent, float blurPercent);
-
-constant unsigned int UPPER_BOUND = 0;
-constant unsigned int LOWER_BOUND = 1;
 
 // Used to pack the pixel into the output array
 unsigned int PixelToBufferData(uint4 pixel)
@@ -31,18 +29,18 @@ uint4 BufferDataToPixel(unsigned int pixelValue)
     return pixel;
 }
 
-float CalculateBlurPercent(unsigned int row, unsigned int boundary, unsigned int whichBound)
+float CalculateUpperBlurPercent(unsigned int row, unsigned int boundary)
 {
-    float blurPercent;
+    float blurPercent = 1.0f - ((float)row) / boundary;
 
-    if (whichBound == UPPER_BOUND)
-    {
-        blurPercent = 1.0f - row / boundary;
-    }
-    else if (whichBound == LOWER_BOUND)
-    {
-        blurPercent = row / boundary - 1.0f;
-    }
+    return blurPercent;
+}
+
+float CalculateLowerBlurPercent(unsigned int row, unsigned int boundary, unsigned int imageHeight)
+{
+    float blurPercent = 1.0f - (((float)imageHeight) - row)/(imageHeight - boundary);
+
+    return blurPercent;
 }
 
 uint4 ComposePixels(uint4 clearPixel, uint4 blurPixel, float clearPercent, float blurPercent)
@@ -51,6 +49,7 @@ uint4 ComposePixels(uint4 clearPixel, uint4 blurPixel, float clearPercent, float
                       clearPixel.y * clearPercent + blurPixel.y * blurPercent,
                       clearPixel.z * clearPercent + blurPixel.z * blurPercent, 
                       clearPixel.w * clearPercent + blurPixel.w * blurPercent};
+
     return newPixel;
 }
 
@@ -87,20 +86,25 @@ __kernel void TiltShift(__read_only image2d_t originalImg, __global unsigned int
 
     if (row < upperBoundary)
     {
-        blurPercent = CalculateBlurPercent(row, upperBoundary, UPPER_BOUND);
+        blurPercent = CalculateUpperBlurPercent(row, upperBoundary);
     }
     else if (row > lowerBoundary)
     {
-        blurPercent = CalculateBlurPercent(row, lowerBoundary, LOWER_BOUND);
+        blurPercent = CalculateLowerBlurPercent(row, lowerBoundary, imgHeight);
     }
 
     clearPercent -= blurPercent;
+
+    if (clearPercent < 0.0f)
+    {
+        clearPercent = -clearPercent;
+    }
 
     if (row < imgHeight)
     {
         for (int col = 0; col < imgWidth; col++)
         {
-            int2 pixelPos = {row, col};
+            int2 pixelPos = {col, row};
             uint4 clearPixel = read_imageui(originalImg, sampler, pixelPos);
             uint4 blurPixel = BufferDataToPixel(blurredImg[rowOffset + col]);
 
