@@ -137,38 +137,6 @@ __kernel void TiltShift(__read_only image2d_t originalImg, __global unsigned int
 }
 
 
-// Reference
-
-// Take the alpha value of each pixel and cut it in half.
-// Each worker will handle 1 row of the image.
-// __kernel void Alphaize( __read_only image2d_t sourceImg, __global unsigned int* outputBuffer)
-// {
-//     int imgWidth = get_image_width(sourceImg);
-//     int imgHeight = get_image_height(sourceImg);
-//     sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;
-//
-//
-//     int row = get_global_id(0);
-//
-//     int rowOffset = mul24(row, imgWidth);
-//
-//     if (row < imgHeight)
-//     {
-//         for (int col = 0; col < imgWidth; col++)
-//         {
-//             int2 pixelPos = {col, row};
-//             uint4 rgbaVals = read_imageui(sourceImg, sampler, pixelPos);
-//             uint4 newRgba = {rgbaVals.x, rgbaVals.y, rgbaVals.z, rgbaVals.w / 2};
-//
-//             outputBuffer[rowOffset + col] = PixelToBufferData(newRgba);
-//         }
-//     }
-// }
-
-
-
-
-
 
 // BoxFilter
 /*
@@ -218,7 +186,7 @@ __kernel void BoxRowsTex( __read_only image2d_t SourceRgbaTex, __global unsigned
   size_t globalPosY = get_global_id(0);
   size_t szBaseOffset = mul24(globalPosY, uiWidth);
   
-  // Process the row as long as Y pos isn'f4Sum off the image
+  // Process the row as long as Y pos isn't off the image
   if (globalPosY < uiHeight) 
   {
     // 4 fp32 accumulators
@@ -228,13 +196,14 @@ __kernel void BoxRowsTex( __read_only image2d_t SourceRgbaTex, __global unsigned
     for(int x = -iRadius; x <= iRadius; x++)     // (note:  clamping provided by Image (texture))
     {
       int2 pos = {x , globalPosY};
-      f4Sum += convert_float4(read_imageui(SourceRgbaTex, RowSampler, pos));  
+
+      f4Sum += convert_float4(read_imageui(SourceRgbaTex, RowSampler, pos));
     }
     uiDest[szBaseOffset] = rgbaFloat4ToUint(f4Sum, fScale);
     
     // Do the rest of the image
     int2 pos = {0, globalPosY};
-    for(unsigned int x = 1; x < uiWidth; x++)           //  (note:  clamping provided by Image (texture)) 
+    for(unsigned int x = 1; x < uiWidth; x++)           //  (note:  clamping provided by Image (texture))
     {
       // Accumulate the next rgba sub-pixel vals
       pos.x = x + iRadius;
@@ -242,6 +211,7 @@ __kernel void BoxRowsTex( __read_only image2d_t SourceRgbaTex, __global unsigned
       
       // Remove the trailing rgba sub-pixel vals
       pos.x = x - iRadius - 1;
+
       f4Sum -= convert_float4(read_imageui(SourceRgbaTex, RowSampler, pos));  
       
       // Write out to GMEM
@@ -255,7 +225,7 @@ __kernel void BoxRowsTex( __read_only image2d_t SourceRgbaTex, __global unsigned
 __kernel void BoxColumns(__global unsigned int* uiInputImage, __global unsigned int* uiOutputImage, 
                          unsigned int uiWidth, unsigned int uiHeight, int iRadius, float fScale)
 {
-    size_t globalPosX = get_global_id(0);
+  size_t globalPosX = get_global_id(0);
   uiInputImage = &uiInputImage[globalPosX];
   uiOutputImage = &uiOutputImage[globalPosX];
   
