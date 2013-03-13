@@ -1,6 +1,12 @@
 /*
 CSC 520 Final Project
 Box Filter using WebCL
+
+Credit for most of:
+InitTiltShiftSystem
+ResetKernelArgs
+BoxFilterGPU
+goes to NVIDIA
 */
 
 // Globals (yes this is overkill, I don't care)
@@ -15,20 +21,18 @@ var clQueue;
 // Box processing params
 var iRadius = 14;                  // initial radius of 2D box filter mask
 var fScale = 1/(2 * iRadius + 1);  // precalculated GV rescaling value
-
 var ckBoxRowsTex;             // OpenCL Kernel for row sum (using 2d Image/texture)
 var ckBoxColumns;             // OpenCL for column sum and normalize
-var clInputImage;               // OpenCL device memory object (buffer or 2d Image) for input data
+var clInputImage;             // OpenCL device memory object (buffer or 2d Image) for input data
 var cmDevBufTemp;             // OpenCL device memory temp buffer object
-var cmDevBufOut;              // OpenCL device memory output buffer object
+var clBlurredImageBuffer;     // OpenCL device memory output buffer object
 var szBuffBytes;              // Size of main image buffers
-var szGlobalWorkSize=[0,0];      // global # of work items
-var szLocalWorkSize= [0,0];       // work group # of work items
+var szGlobalWorkSize=[0,0];   // global # of work items
+var szLocalWorkSize= [0,0];   // work group # of work items
 var szMaxWorkgroupSize = 512; // initial max # of work items
-
-var clBlurImageBuffer;
-var szBuffBytes;
-var image;
+var blurImageOut;             // Stores blurred image buffer once it's back on the CPU
+var szBuffBytes;              // The size of the image in bytes
+var image;                    // The original image
 
 // nodejs, node-image, node-webcl required
 var nodejs = (typeof window === 'undefined');
@@ -100,8 +104,6 @@ function InitTiltShiftSystem (imageFile)
     // Convert the image to make life easy and breezy
     image = img.convertTo32Bits();
 
-    // Create blurred image
-
     szBuffBytes = image.height*image.pitch;
 
     // Allocate OpenCL object for the image source data
@@ -119,7 +121,7 @@ function InitTiltShiftSystem (imageFile)
 
     // Allocate the OpenCL intermediate and result buffer memory objects on the device GMEM
     cmDevBufTemp = clContext.createBuffer(WebCL.MEM_READ_WRITE, szBuffBytes);
-    cmDevBufOut = clContext.createBuffer(WebCL.MEM_WRITE_ONLY, szBuffBytes);
+    clBlurredImageBuffer = clContext.createBuffer(WebCL.MEM_WRITE_ONLY, szBuffBytes);
 
     //Create the program
     clProgram = clContext.createProgram("tilt_shift.cl");
@@ -134,17 +136,18 @@ function InitTiltShiftSystem (imageFile)
     ResetKernelArgs(image.width, image.height, iRadius, fScale);
 
     // launch processing on the GPU
-    BoxFilterGPU (image, cmDevBufOut, iRadius, fScale);
+    BoxFilterGPU (image, clBlurredImageBuffer, iRadius, fScale);
     clQueue.finish();
 
     // Copy results back to host memory, block until complete
-    clBlurImageBuffer=new Uint8Array(szBuffBytes);
-    clQueue.enqueueReadBuffer(cmDevBufOut, WebCL.TRUE, 0, szBuffBytes, clBlurImageBuffer);
+    blurImageOut=new Uint8Array(szBuffBytes);
+    clQueue.enqueueReadBuffer(clBlurredImageBuffer, WebCL.TRUE, 0, szBuffBytes, blurImageOut);
 
     clQueue.finish();
 
+    // Create blurred image
     // PNG uses 32-bit images, JPG can only work on 24-bit images
-    if(!Image.save('out_'+iRadius+'.png',clBlurImageBuffer, image.width,image.height, image.pitch, image.bpp, 0xFF0000, 0x00FF00, 0xFF))
+    if(!Image.save('out_'+iRadius+'.png',blurImageOut, image.width,image.height, image.pitch, image.bpp, 0xFF0000, 0x00FF00, 0xFF))
       log("Error saving image");
 }
 
@@ -161,7 +164,7 @@ function ResetKernelArgs(width, height, r, fScale)
 
     // Set the Argument values for the column kernel
     ckBoxColumns.setArg(0, cmDevBufTemp);
-    ckBoxColumns.setArg(1, cmDevBufOut);
+    ckBoxColumns.setArg(1, clBlurredImageBuffer);
     ckBoxColumns.setArg(2, width, WebCL.type.UINT);
     ckBoxColumns.setArg(3, height, WebCL.type.UINT);
     ckBoxColumns.setArg(4, r, WebCL.type.INT);
@@ -208,15 +211,43 @@ function BoxFilterGPU(image, cmOutputBuffer, r, fScale)
     //sync host
     clQueue.finish();
 }
-
 // End total theft
 
+
+/*
+    Apply the tilt shift with two boundaries.
+    Take in the original image and blurred image and add them together
+    - Linear gradient of blur
+
+    *************************************
+    *                                   *   - 100% blur
+    *   Blurred                         *   - 50% blur
+    *___________________________________*   - upperBoundary, 0% blur
+    *                                   *
+    *                                   *
+    *   Clear                           *
+    *                                   *
+    *___________________________________*   - lowerBoundary, 0% blur
+    *                                   *   - 50% blur
+    *   Blurred                         *   - 100% blur
+    *************************************   
+
+
+PAY ATTENTION HERE!!!
+    ^
+  r |
+  o |
+  w |
+    |------->
+      col
+
+    Coordinate system is "opposite" of usual library stuff like OpenGL.
+
+*/
 function TiltShift (lowerBoundary, upperBoundary) {
-    // Compute composite image
+// Compute composite image
     var outputBytes = new Uint8Array(szBuffBytes);
     var outputImageBuffer;
-
-    // Display image
 
     // Create a normal buffer to hold the outgoing pixels
     // createBuffer (memory_flags, size, optional host_ptr)
@@ -230,7 +261,7 @@ function TiltShift (lowerBoundary, upperBoundary) {
     // Set up our Kernel arguments
     // Kernel arguments are numbered in array-fashion
     tiltShiftKernel.setArg(0, clInputImage);
-    tiltShiftKernel.setArg(1, cmDevBufOut);
+    tiltShiftKernel.setArg(1, clBlurredImageBuffer);
     tiltShiftKernel.setArg(2, outputImageBuffer);
     tiltShiftKernel.setArg(3, lowerBoundary, WebCL.type.UINT);
     tiltShiftKernel.setArg(4, upperBoundary, WebCL.type.UINT);
@@ -245,16 +276,16 @@ function TiltShift (lowerBoundary, upperBoundary) {
 
     clQueue.finish();
 
-    // Read our pixel back out from OpenCL memory space
+    // Read our pixels back out from OpenCL memory space
     clQueue.enqueueReadBuffer(outputImageBuffer, WebCL.TRUE, 0, szBuffBytes, outputBytes);
 
-    // Write out the image
-    if(!Image.save('out_test.png', outputBytes, image.width, image.height, image.pitch, image.bpp, 0xFF0000, 0x00FF00, 0xFF))
+// Write out the image
+    if(!Image.save('out_' + process.argv[2] + '.png', outputBytes, image.width, image.height, image.pitch, image.bpp, 0xFF0000, 0x00FF00, 0xFF))
         console.log("Error saving image");
 }
 
 InitWebCL();
-InitTiltShiftSystem("Central_Cape_Town.png");
+InitTiltShiftSystem(process.argv[2]);
 
 // Get slider values to pass in!
-TiltShift(30, 100);
+TiltShift(parseInt(process.argv[3]), parseInt(process.argv[4]));

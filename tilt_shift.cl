@@ -121,16 +121,6 @@ __kernel void TiltShift(__read_only image2d_t originalImg, __global unsigned int
 
             uint4 newPixel = ComposePixels(clearPixel, blurPixel, clearPercent, blurPercent);
 
-            if (row < 100)
-            {
-              newPixel.x = 255;
-            }
-
-            if (col < 100)
-            {
-              newPixel.y = 255;
-            }
-
             outputImage[rowOffset + col] = PixelToBufferData(newPixel);
         }
     }
