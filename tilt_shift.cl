@@ -1,7 +1,7 @@
 unsigned int PixelToBufferData(uint4 pixel);
 uint4 BufferDataToPixel(unsigned int pixelValue);
-float CalculateUpperBlurPercent(unsigned int row, unsigned int boundary);
-float CalculateLowerBlurPercent(unsigned int row, unsigned int boundary, unsigned int imageHeight);
+float CalculateLowerBlurPercent(unsigned int row, unsigned int boundary);
+float CalculateUpperBlurPercent(unsigned int row, unsigned int boundary, unsigned int imageHeight);
 uint4 ComposePixels(uint4 clearPixel, uint4 blurPixel, float clearPercent, float blurPercent);
 
 // Used to pack the pixel into the output array
@@ -29,14 +29,14 @@ uint4 BufferDataToPixel(unsigned int pixelValue)
     return pixel;
 }
 
-float CalculateUpperBlurPercent(unsigned int row, unsigned int boundary)
+float CalculateLowerBlurPercent(unsigned int row, unsigned int boundary)
 {
     float blurPercent = 1.0f - ((float)row) / boundary;
 
     return blurPercent;
 }
 
-float CalculateLowerBlurPercent(unsigned int row, unsigned int boundary, unsigned int imageHeight)
+float CalculateUpperBlurPercent(unsigned int row, unsigned int boundary, unsigned int imageHeight)
 {
     float blurPercent = 1.0f - (((float)imageHeight) - row)/(imageHeight - boundary);
 
@@ -70,9 +70,20 @@ uint4 ComposePixels(uint4 clearPixel, uint4 blurPixel, float clearPercent, float
     *   Blurred                         *   - 100% blur
     *************************************   
 
+
+PAY ATTENTION HERE!!!
+    ^
+  r |
+  o |
+  w |
+    |------->
+      col
+
+    Coordinate system is "opposite" of usual library stuff like OpenGL.
+
 */
 __kernel void TiltShift(__read_only image2d_t originalImg, __global unsigned int* blurredImg,
-    __global unsigned int* outputImage, unsigned int upperBoundary, unsigned int lowerBoundary)
+    __global unsigned int* outputImage, unsigned int lowerBoundary, unsigned int upperBoundary)
 {
     int imgWidth = get_image_width(originalImg);
     int imgHeight = get_image_height(originalImg);
@@ -84,13 +95,13 @@ __kernel void TiltShift(__read_only image2d_t originalImg, __global unsigned int
     float blurPercent = 0.0f;
     float clearPercent = 1.0f;
 
-    if (row < upperBoundary)
+    if (row < lowerBoundary)
     {
-        blurPercent = CalculateUpperBlurPercent(row, upperBoundary);
+        blurPercent = CalculateLowerBlurPercent(row, lowerBoundary);
     }
-    else if (row > lowerBoundary)
+    else if (row > upperBoundary)
     {
-        blurPercent = CalculateLowerBlurPercent(row, lowerBoundary, imgHeight);
+        blurPercent = CalculateUpperBlurPercent(row, upperBoundary, imgHeight);
     }
 
     clearPercent -= blurPercent;
@@ -109,6 +120,16 @@ __kernel void TiltShift(__read_only image2d_t originalImg, __global unsigned int
             uint4 blurPixel = BufferDataToPixel(blurredImg[rowOffset + col]);
 
             uint4 newPixel = ComposePixels(clearPixel, blurPixel, clearPercent, blurPercent);
+
+            if (row < 100)
+            {
+              newPixel.x = 255;
+            }
+
+            if (col < 100)
+            {
+              newPixel.y = 255;
+            }
 
             outputImage[rowOffset + col] = PixelToBufferData(newPixel);
         }

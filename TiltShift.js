@@ -211,7 +211,7 @@ function BoxFilterGPU(image, cmOutputBuffer, r, fScale)
 
 // End total theft
 
-function TiltShift (upperBoundary, lowerBoundary) {
+function TiltShift (lowerBoundary, upperBoundary) {
     // Compute composite image
     var outputBytes = new Uint8Array(szBuffBytes);
     var outputImageBuffer;
@@ -232,8 +232,8 @@ function TiltShift (upperBoundary, lowerBoundary) {
     tiltShiftKernel.setArg(0, clInputImage);
     tiltShiftKernel.setArg(1, cmDevBufOut);
     tiltShiftKernel.setArg(2, outputImageBuffer);
-    tiltShiftKernel.setArg(3, upperBoundary, WebCL.type.UINT);
-    tiltShiftKernel.setArg(4, lowerBoundary, WebCL.type.UINT);
+    tiltShiftKernel.setArg(3, lowerBoundary, WebCL.type.UINT);
+    tiltShiftKernel.setArg(4, upperBoundary, WebCL.type.UINT);
 
     // Yay, all the setup is done, let's do some work!
     // Run our kernel
@@ -257,4 +257,4 @@ InitWebCL();
 InitTiltShiftSystem("Central_Cape_Town.png");
 
 // Get slider values to pass in!
-TiltShift(300, 100);
+TiltShift(30, 100);
