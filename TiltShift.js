@@ -11,6 +11,19 @@ var device;
 var clContext;
 var clQueue;
 
+var ckBoxRowsTex;             // OpenCL Kernel for row sum (using 2d Image/texture)
+var ckBoxColumns;             // OpenCL for column sum and normalize
+var clInputImage;               // OpenCL device memory object (buffer or 2d Image) for input data
+var cmDevBufTemp;             // OpenCL device memory temp buffer object
+var cmDevBufOut;              // OpenCL device memory output buffer object
+var szBuffBytes;              // Size of main image buffers
+var szGlobalWorkSize=[0,0];      // global # of work items
+var szLocalWorkSize= [0,0];       // work group # of work items
+var szMaxWorkgroupSize = 512; // initial max # of work items
+
+var clBlurImageBuffer;
+var szBuffBytes;
+
 // nodejs, node-image, node-webcl required
 var nodejs = (typeof window === 'undefined');
 if (nodejs) {
@@ -66,10 +79,12 @@ function InitWebCL () {
     clQueue = clContext.createCommandQueue(device, 0);
 }
 
+// Total theft
+
 function InitTiltShiftSystem (imageFile)
 {
     // Load original image
-    var file = imageName;
+    var file = imageFile;
     console.log('Loading image ' + file);
 
     var img = Image.load(file);
@@ -84,21 +99,18 @@ function InitTiltShiftSystem (imageFile)
     var iRadius = 14;                           // initial radius of 2D box filter mask
     var fScale = 1/(2 * iRadius + 1);  // precalculated GV rescaling value
 
-    // OpenCL variables
-    var ckBoxRowsTex;             // OpenCL Kernel for row sum (using 2d Image/texture)
-    var ckBoxColumns;             // OpenCL for column sum and normalize
-    var cmDevBufIn;               // OpenCL device memory object (buffer or 2d Image) for input data
-    var cmDevBufTemp;             // OpenCL device memory temp buffer object
-    var cmDevBufOut;              // OpenCL device memory output buffer object
-    var szBuffBytes;              // Size of main image buffers
-    var szGlobalWorkSize=[0,0];      // global # of work items
-    var szLocalWorkSize= [0,0];       // work group # of work items
-    var szMaxWorkgroupSize = 512; // initial max # of work items
+    szBuffBytes = image.height*image.pitch;
 
-    var szBuffBytes = image.height*image.pitch;
+    // Allocate OpenCL object for the image source data
+    var InputFormat = {
+      order : WebCL.RGBA,
+      data_type : WebCL.UNSIGNED_INT8,
+      size : [image.width, image.height],
+      rowPitch : image.pitch
+    };
 
     //2D Image (Texture) on device
-    cmDevBufIn = clContext.createImage(WebCL.MEM_READ_ONLY | WebCL.MEM_USE_HOST_PTR, InputFormat, image.buffer);
+    clInputImage = clContext.createImage(WebCL.MEM_READ_ONLY | WebCL.MEM_USE_HOST_PTR, InputFormat, image.buffer);
 
     RowSampler = clContext.createSampler(false, WebCL.ADDRESS_CLAMP, WebCL.FILTER_NEAREST);
 
@@ -123,18 +135,18 @@ function InitTiltShiftSystem (imageFile)
     clQueue.finish();
 
     // Copy results back to host memory, block until complete
-    var uiOutput=new Uint8Array(szBuffBytes);
-    clQueue.enqueueReadBuffer(cmDevBufOut, WebCL.TRUE, 0, szBuffBytes, uiOutput);
+    clBlurImageBuffer=new Uint8Array(szBuffBytes);
+    clQueue.enqueueReadBuffer(cmDevBufOut, WebCL.TRUE, 0, szBuffBytes, clBlurImageBuffer);
 
     // PNG uses 32-bit images, JPG can only work on 24-bit images
-    if(!Image.save('out_'+iRadius+'.png',uiOutput, image.width,image.height, image.pitch, image.bpp, 0xFF0000, 0x00FF00, 0xFF))
+    if(!Image.save('out_'+iRadius+'.png',clBlurImageBuffer, image.width,image.height, image.pitch, image.bpp, 0xFF0000, 0x00FF00, 0xFF))
       log("Error saving image");
 }
 
 function ResetKernelArgs(width, height, r, fScale)
 {
     // (Image/texture version)
-    ckBoxRowsTex.setArg(0, cmDevBufIn);
+    ckBoxRowsTex.setArg(0, clInputImage);
     ckBoxRowsTex.setArg(1, cmDevBufTemp);
     ckBoxRowsTex.setArg(2, RowSampler);
     ckBoxRowsTex.setArg(3, width, WebCL.type.UINT);
@@ -163,7 +175,7 @@ function BoxFilterGPU(image, cmOutputBuffer, r, fScale)
     var szTexOrigin = [0, 0, 0];                // Offset of input texture origin relative to host image
     var szTexRegion = [image.width, image.height, 1];   // Size of texture region to operate on
     log('enqueue image: origin='+szTexOrigin+", region="+szTexRegion);
-    clQueue.enqueueWriteImage(cmDevBufIn, WebCL.TRUE, szTexOrigin, szTexRegion, 0, 0, image.buffer);
+    clQueue.enqueueWriteImage(clInputImage, WebCL.TRUE, szTexOrigin, szTexRegion, 0, 0, image.buffer);
 
     // Set global and local work sizes for row kernel
     szLocalWorkSize[0] = 1;
@@ -192,74 +204,31 @@ function BoxFilterGPU(image, cmOutputBuffer, r, fScale)
     clQueue.finish();
 }
 
-function TiltShift (imageName, upperBoundary, lowerBoundary) {
-    // Get slider values
+// End total theft
 
+function TiltShift (upperBoundary, lowerBoundary) {
     // Compute composite image
-
-    // Display image
-
-
-
-
-    // The size of a buffer to hold the image once manipulated
-    var szBuffBytes = image.height*image.pitch;
-
     var outputBytes = new Uint8Array(szBuffBytes);
     var outputImageBuffer;
-    var inputImage;
 
-    // Allocate OpenCL object for the image source data
-    var InputFormat = {
-      order : WebCL.RGBA,
-      data_type : WebCL.UNSIGNED_INT8,
-      size : [image.width, image.height],
-      rowPitch : image.pitch
-    };
-
-    // Create an Image buffer (as opposed to a plain old data buffer)
-    // createImage (memory_flags, imageFormat, imageBuffer)
-    // memory_flags options:
-    // MEM_READ_WRITE
-    // MEM_WRITE_ONLY
-    // MEM_READ_ONLY
-    // MEM_USE_HOST_PTR     - Use host pointer, don't create anything new
-    // MEM_ALLOC_HOST_PTR   - Allocate a new host pointer,
-    // MEM_COPY_HOST_PTR    - Copy the host pointer
-    // imageBuffer acts as the host pointer here.
-    inputImage = clContext.createImage(WebCL.MEM_READ_ONLY | WebCL.MEM_USE_HOST_PTR, InputFormat, image.buffer);
+    // Display image
 
     // Create a normal buffer to hold the outgoing pixels
     // createBuffer (memory_flags, size, optional host_ptr)
     outputImageBuffer = clContext.createBuffer(WebCL.MEM_WRITE_ONLY, szBuffBytes);
 
-    // Create our Program
-    // Programs are a set of kernels, basically it's a representation of the
-    // OpenCL file(s) with all the functions in it.
-    var clProgram = clContext.createProgram("see_through.cl");
-
-    // Compile the program!
-    // build (device, optional flags, optional data, optional callback)
-    clProgram.build(device, "-cl-fast-relaxed-math");
-
     // Get our Kernel(s) set up.
     // Kernels are the actual functions that will be run on the device
     // You can choose any of the kernels specificed in the Program
-    var clKernel = clProgram.createKernel("Alphaize");
+    var tiltShiftKernel = clProgram.createKernel("TiltShift");
 
     // Set up our Kernel arguments
     // Kernel arguments are numbered in array-fashion
-    clKernel.setArg(0, inputImage);
-    clKernel.setArg(1, outputImageBuffer);
-
-    // Write our image into OpenCL memory space!
-    // enqueueWriteImage(cl_image, blocking_write, origin, region, row_pitch,
-    //  slice_pitch, ptr, optional event_list, optional event)
-    clQueue.enqueueWriteImage(inputImage, WebCL.TRUE, [0, 0, 0], [image.width, image.height, 1], 0, 0, image.buffer);
-
-    // Finish all tasks in the clQueue before continuing.
-    // (The image has to be written before it can be read)
-    clQueue.finish();
+    tiltShiftKernel.setArg(0, clInputImage);
+    tiltShiftKernel.setArg(1, clBlurImageBuffer);
+    tiltShiftKernel.setArg(2, outputImageBuffer);
+    tiltShiftKernel.setArg(3, upperBoundary, WebCL.type.UINT);
+    tiltShiftKernel.setArg(4, lowerBoundary, WebCL.type.UINT);
 
     // Yay, all the setup is done, let's do some work!
     // Run our kernel
@@ -267,7 +236,7 @@ function TiltShift (imageName, upperBoundary, lowerBoundary) {
     // Workgroups:
     // Global - Total number of elements (indices) in the domain
     // Local - Subgroups for inter-item communication (out of our scope)
-    clQueue.enqueueNDRangeKernel(clKernel, null, [image.height, 1], [1, 1]);
+    clQueue.enqueueNDRangeKernel(tiltShiftKernel, null, [image.height, 1], [1, 1]);
 
     clQueue.finish();
 
@@ -281,4 +250,6 @@ function TiltShift (imageName, upperBoundary, lowerBoundary) {
 
 InitWebCL();
 InitTiltShiftSystem("old_test.png");
-// TiltShift(originalImage, blurredImage, upperBoundary, lowerBoundary);
+
+// Get slider values to pass in!
+TiltShift(200, 500);

@@ -3,8 +3,8 @@ uint4 BufferDataToPixel(unsigned int pixelValue);
 float CalculateBlurPercent(unsigned int row, unsigned int boundary, unsigned int whichBound);
 uint4 ComposePixels(uint4 clearPixel, uint4 blurPixel, float clearPercent, float blurPercent);
 
-unsigned int UPPER_BOUND = 0;
-unsigned int LOWER_BOUND = 1;
+constant unsigned int UPPER_BOUND = 0;
+constant unsigned int LOWER_BOUND = 1;
 
 // Used to pack the pixel into the output array
 unsigned int PixelToBufferData(uint4 pixel)
@@ -47,8 +47,10 @@ float CalculateBlurPercent(unsigned int row, unsigned int boundary, unsigned int
 
 uint4 ComposePixels(uint4 clearPixel, uint4 blurPixel, float clearPercent, float blurPercent)
 {
-    uint4 newPixel = {clearPixel.x * clearPercent + blurPixel.x * blurPercent, clearPixel.y * clearPercent + blurPixel.y * blurPercent,
-        clearPixel.z * clearPercent + blurPixel.z * blurPercent, clearPixel.w * clearPercent + blurPixel.w * blurPercent};
+    uint4 newPixel = {clearPixel.x * clearPercent + blurPixel.x * blurPercent, 
+                      clearPixel.y * clearPercent + blurPixel.y * blurPercent,
+                      clearPixel.z * clearPercent + blurPixel.z * blurPercent, 
+                      clearPixel.w * clearPercent + blurPixel.w * blurPercent};
     return newPixel;
 }
 
@@ -75,6 +77,7 @@ __kernel void TiltShift(__read_only image2d_t originalImg, __global unsigned int
 {
     int imgWidth = get_image_width(originalImg);
     int imgHeight = get_image_height(originalImg);
+    sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;
 
     int row = get_global_id(0);
     int rowOffset = mul24(row, imgWidth);
@@ -98,7 +101,7 @@ __kernel void TiltShift(__read_only image2d_t originalImg, __global unsigned int
         for (int col = 0; col < imgWidth; col++)
         {
             int2 pixelPos = {row, col};
-            uint4 clearPixel = read_imageui(sourceImg, sampler, pixelPos);
+            uint4 clearPixel = read_imageui(originalImg, sampler, pixelPos);
             uint4 blurPixel = BufferDataToPixel(blurredImg[rowOffset + col]);
 
             uint4 newPixel = ComposePixels(clearPixel, blurPixel, clearPercent, blurPercent);
