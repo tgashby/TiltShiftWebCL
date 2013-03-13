@@ -91,10 +91,10 @@ function InitWebCL () {
 
 // Total theft
 
-function InitTiltShiftSystem (imageFile)
+function InitTiltShiftSystem (imageFileName)
 {
     // Load original image
-    var file = imageFile;
+    var file = imageFileName;
     console.log('Loading image ' + file);
 
     var img = Image.load(file);
@@ -147,7 +147,7 @@ function InitTiltShiftSystem (imageFile)
 
     // Create blurred image
     // PNG uses 32-bit images, JPG can only work on 24-bit images
-    if(!Image.save('out_'+iRadius+'.png',blurImageOut, image.width,image.height, image.pitch, image.bpp, 0xFF0000, 0x00FF00, 0xFF))
+    if(!Image.save('blur_'+iRadius+'.png',blurImageOut, image.width,image.height, image.pitch, image.bpp, 0xFF0000, 0x00FF00, 0xFF))
       log("Error saving image");
 }
 
@@ -280,7 +280,7 @@ function TiltShift (lowerBoundary, upperBoundary) {
     clQueue.enqueueReadBuffer(outputImageBuffer, WebCL.TRUE, 0, szBuffBytes, outputBytes);
 
 // Write out the image
-    if(!Image.save('out_' + process.argv[2] + '.png', outputBytes, image.width, image.height, image.pitch, image.bpp, 0xFF0000, 0x00FF00, 0xFF))
+    if(!Image.save('tilt_shifted.png', outputBytes, image.width, image.height, image.pitch, image.bpp, 0xFF0000, 0x00FF00, 0xFF))
         console.log("Error saving image");
 }
 
