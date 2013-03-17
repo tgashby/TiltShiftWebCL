@@ -1,0 +1,16 @@
+100 Runs of "Central_Cape_Town.png 200 600"
+
+Intel(R) Core(TM)2 Duo CPU
+real	3m13.066s (193.066 / 100 = 1.931 sec/run)
+user	2m57.805s
+sys		0m6.846s
+
+GeForce 9400M (Low power graphics)
+real	4m3.918s (243.918 / 100 = 2.439 sec/run)
+user	2m48.327s
+sys		0m8.627s
+
+GeForce 9600M GT (High power graphics)
+real	3m47.300s (227.3 / 100 = 2.273 sec/run)
+user	2m48.382s
+sys		0m16.533s

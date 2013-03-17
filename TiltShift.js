@@ -63,10 +63,10 @@ function InitWebCL () {
 
     // CL Device setup
     // Devices are what actaully do the work, CPUs, GPUs, etc
-    var devices = platform.getDevices(WebCL.DEVICE_TYPE_DEFAULT);
+    var devices = platform.getDevices(WebCL.DEVICE_TYPE_ALL);
 
     // This appears to always be the graphics card... But I'm taking it on faith.
-    device = devices[0];
+    device = devices[parseInt(process.argv[2])];
     console.log("Using Card: " + device.getInfo(WebCL.DEVICE_NAME));
 
     // We want to manipulate images, we better have image support.
@@ -285,7 +285,7 @@ function TiltShift (lowerBoundary, upperBoundary) {
 }
 
 InitWebCL();
-InitTiltShiftSystem(process.argv[2]);
+InitTiltShiftSystem(process.argv[3]);
 
 // Get slider values to pass in!
-TiltShift(parseInt(process.argv[3]), parseInt(process.argv[4]));
+TiltShift(parseInt(process.argv[4]), parseInt(process.argv[5]));
